@@ -7,6 +7,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -20,18 +22,23 @@ public class TimeServlet extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        String timeZone = req.getParameter("timezone") != null
-                ? req.getQueryString().split("=")[1]
-                : "UTC";
+        String timeZone = req.getParameter("timezone");
+        if(timeZone != null){
+            timeZone = req.getQueryString().split("=")[1];
+            timeZone = timeZone.contains("%")
+                    ? URLDecoder.decode(timeZone, StandardCharsets.UTF_8)
+                    : timeZone;
+        }else{
+            timeZone = "UTC";
+        }
 
         ZoneId zoneId = ZoneId.of(timeZone);
-
-
         ZoneOffset zoneOffset = zoneId.getRules().getOffset(Instant.now());
 
         LocalDateTime dateTime = LocalDateTime.now(zoneOffset);
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern(String.format("yyyy-MM-dd HH:mm:ss '%s'", timeZone));
         String formattedDateTime = dateTime.format(formatter);
+
         resp.setContentType("text/html; charset=utf-8");
         resp.getWriter().write(formattedDateTime);
         resp.getWriter().close();
